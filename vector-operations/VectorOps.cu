@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cstdlib>
 #include "VectorOps.cuh"
+#include <curand.h>
+#include <curand_kernel.h>
 
 #include "boost/program_options/variables_map.hpp"
 #include "boost/program_options/options_description.hpp"
@@ -22,9 +24,21 @@ __global__ void sub_vecs(float *vec1, float *vec2, float *outVec) {
     outVec[i] = vec1[i] - vec2[i];
 }
 
-void print_vector(std::vector<float> vec) {
+__global__ void dot_product_vecs(float *vec1, float *vec2, float *outVec) {
+    auto i = threadIdx.x + blockIdx.x * blockDim.x;
+    outVec[i] = vec1[i] * vec2[i];
+}
+
+void print_vector(float* vec, int size) {
     std::cout << "[ ";
-    std::for_each(vec.begin(), vec.end(), [](float i) { std::cout << i << ' '; });
+    if (size <= 15) {
+        for(int i=0;i<size;++i)
+            std::cout << vec[i] << ' ';
+    } else {
+        for(int i=0;i<15;++i)
+            std::cout << vec[i] << ' ';
+        std::cout << "... " << vec[size-1];
+    }
     std::cout << " ]" << std::endl;
 }
 
@@ -36,27 +50,42 @@ int VectorOps::main(const po::variables_map &vm) {
         std::cout << "Randomizing " << amountElements << " elements and performing operations" << std::endl;
     }
 
-    std::vector<float> vec1(amountElements);
-    std::generate(vec1.begin(), vec1.end(), []() { return static_cast <float> (rand()) / static_cast <float> (RAND_MAX); });
-    std::cout << "Vec1: ";
-    print_vector(vec1);
+    float *vec1;
+    float *vec2;
+    cudaMalloc(&vec1, amountElements * sizeof(float));
+    cudaMalloc(&vec2, amountElements * sizeof(float));
 
-    std::vector<float> vec2(amountElements);
-    std::generate(vec2.begin(), vec2.end(), []() { return static_cast <float> (rand()) / static_cast <float> (RAND_MAX); });
-    std::cout << "Vec2: ";
-    print_vector(vec2);
+    curandGenerator_t gen;
+    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+    curandSetPseudoRandomGeneratorSeed(gen,1234ULL);
+
+    curandGenerateUniform(gen, vec1, amountElements);
+    curandGenerateUniform(gen, vec2, amountElements);
+
+    curandDestroyGenerator(gen);
+
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (amountElements + threadsPerBlock - 1) / threadsPerBlock;
 
     float *vec_result;
-    float *vec1_data;
-    float *vec2_data;
-    cudaMalloc(&vec1_data, amountElements * sizeof(float));
-    cudaMalloc(&vec2_data, amountElements * sizeof(float));
+
     cudaMalloc(&vec_result, amountElements * sizeof(float));
 
-    cudaMemcpy(vec1_data, vec1.data(), amountElements * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(vec2_data, vec2.data(), amountElements * sizeof(float), cudaMemcpyHostToDevice);
+    float* host_vec1 = new float[amountElements];
+    cudaMemcpy(host_vec1, vec1, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "Vec1: ";
+    print_vector(host_vec1,amountElements);
 
-    add_vecs<<<1, amountElements>>>(vec1_data, vec2_data, vec_result);
+    float* host_vec2 = new float[amountElements];
+    cudaMemcpy(host_vec2, vec2, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    std::cout << "Vec2: ";
+    print_vector(host_vec2,amountElements);
+
+    delete[] host_vec1;
+    delete[] host_vec2;
+
+    // Addition
+    add_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, vec_result);
 
     cudaDeviceSynchronize();
     cudaError_t error = cudaGetLastError();
@@ -68,11 +97,11 @@ int VectorOps::main(const po::variables_map &vm) {
     float* host_result = new float[amountElements];
     cudaMemcpy(host_result, vec_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
 
-    std::vector<float> output_vector(host_result, host_result + amountElements);
     std::cout << "Addition output vector: ";
-    print_vector(output_vector);
+    print_vector(host_result, amountElements);
 
-    sub_vecs<<<1, amountElements>>>(vec1_data, vec2_data, vec_result);
+    // Subtraction
+    sub_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, vec_result);
 
     cudaDeviceSynchronize();
     error = cudaGetLastError();
@@ -83,14 +112,32 @@ int VectorOps::main(const po::variables_map &vm) {
 
     cudaMemcpy(host_result, vec_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
 
-    output_vector = std::vector<float>(host_result, host_result + amountElements);
     std::cout << "Subtraction output vector: ";
-    print_vector(output_vector);
+    print_vector(host_result, amountElements);
+
+    // Dot product
+    dot_product_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, vec_result);
+
+    cudaDeviceSynchronize();
+    error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        std::cerr << "CUDA error: " << cudaGetErrorString(error) << std::endl;
+        return -1;
+    }
+
+    cudaMemcpy(host_result, vec_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+
+    float dotProduct = 0.0f;
+    for (int i = 0; i < amountElements; i++) {
+        dotProduct += host_result[i];
+    }
+
+    printf("Dot product: %.5f\n", dotProduct);
 
     delete[] host_result;
 
-    cudaFree(vec1_data);
-    cudaFree(vec2_data);
+    cudaFree(vec1);
+    cudaFree(vec2);
     cudaFree(vec_result);
 
     return 0;

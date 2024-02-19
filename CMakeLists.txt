@@ -7,6 +7,9 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
+# Find CUDA
+find_package(CUDA REQUIRED)
+
 include(FetchContent)
 
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options)
@@ -27,7 +30,7 @@ add_executable(cuda_notebooks main.cu
         vector-operations/VectorOps.cu
         vector-operations/VectorOps.cuh)
 
-target_link_libraries(cuda_notebooks PUBLIC Boost::program_options)
+target_link_libraries(cuda_notebooks PUBLIC Boost::program_options curand)
 
 set_target_properties(cuda_notebooks PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)

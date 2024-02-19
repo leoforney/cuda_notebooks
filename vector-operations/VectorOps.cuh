@@ -5,6 +5,8 @@
 #ifndef CUDA_NOTEBOOKS_VECTOROPS_CUH
 #define CUDA_NOTEBOOKS_VECTOROPS_CUH
 
+#include <curand.h>
+#include <curand_kernel.h>
 
 #include "boost/program_options/variables_map.hpp"
 #include "boost/program_options/options_description.hpp"
