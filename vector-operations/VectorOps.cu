@@ -54,10 +54,16 @@ int VectorOps::main(const po::variables_map &vm) {
     float *vec2;
     cudaMalloc(&vec1, amountElements * sizeof(float));
     cudaMalloc(&vec2, amountElements * sizeof(float));
+    float *add_result;
+    float *sub_result;
+    float *dot_prod_result;
+    cudaMalloc(&add_result, amountElements * sizeof(float));
+    cudaMalloc(&sub_result, amountElements * sizeof(float));
+    cudaMalloc(&dot_prod_result, amountElements * sizeof(float));
 
     curandGenerator_t gen;
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
-    curandSetPseudoRandomGeneratorSeed(gen,1234ULL);
+    curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
 
     curandGenerateUniform(gen, vec1, amountElements);
     curandGenerateUniform(gen, vec2, amountElements);
@@ -66,10 +72,6 @@ int VectorOps::main(const po::variables_map &vm) {
 
     int threadsPerBlock = 256;
     int blocksPerGrid = (amountElements + threadsPerBlock - 1) / threadsPerBlock;
-
-    float *vec_result;
-
-    cudaMalloc(&vec_result, amountElements * sizeof(float));
 
     float* host_vec1 = new float[amountElements];
     cudaMemcpy(host_vec1, vec1, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
@@ -85,8 +87,15 @@ int VectorOps::main(const po::variables_map &vm) {
     delete[] host_vec2;
 
     // Addition
-    add_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, vec_result);
+    add_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, add_result);
 
+    // Subtraction
+    sub_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, sub_result);
+
+    // Dot product
+    dot_product_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, dot_prod_result);
+
+    // Synchronize Device
     cudaDeviceSynchronize();
     cudaError_t error = cudaGetLastError();
     if (error != cudaSuccess) {
@@ -94,51 +103,35 @@ int VectorOps::main(const po::variables_map &vm) {
         return -1;
     }
 
-    float* host_result = new float[amountElements];
-    cudaMemcpy(host_result, vec_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    float* host_add_result = new float[amountElements];
+    cudaMemcpy(host_add_result, add_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    float* host_sub_result = new float[amountElements];
+    cudaMemcpy(host_sub_result, sub_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    float* host_dot_prod_result = new float[amountElements];
+    cudaMemcpy(host_dot_prod_result, dot_prod_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
 
     std::cout << "Addition output vector: ";
-    print_vector(host_result, amountElements);
-
-    // Subtraction
-    sub_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, vec_result);
-
-    cudaDeviceSynchronize();
-    error = cudaGetLastError();
-    if (error != cudaSuccess) {
-        std::cerr << "CUDA error: " << cudaGetErrorString(error) << std::endl;
-        return -1;
-    }
-
-    cudaMemcpy(host_result, vec_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    print_vector(host_add_result, amountElements);
 
     std::cout << "Subtraction output vector: ";
-    print_vector(host_result, amountElements);
-
-    // Dot product
-    dot_product_vecs<<<blocksPerGrid, threadsPerBlock>>>(vec1, vec2, vec_result);
-
-    cudaDeviceSynchronize();
-    error = cudaGetLastError();
-    if (error != cudaSuccess) {
-        std::cerr << "CUDA error: " << cudaGetErrorString(error) << std::endl;
-        return -1;
-    }
-
-    cudaMemcpy(host_result, vec_result, amountElements * sizeof(float), cudaMemcpyDeviceToHost);
+    print_vector(host_sub_result, amountElements);
 
     float dotProduct = 0.0f;
     for (int i = 0; i < amountElements; i++) {
-        dotProduct += host_result[i];
+        dotProduct += host_dot_prod_result[i];
     }
 
     printf("Dot product: %.5f\n", dotProduct);
 
-    delete[] host_result;
-
     cudaFree(vec1);
     cudaFree(vec2);
-    cudaFree(vec_result);
+    cudaFree(add_result);
+    cudaFree(sub_result);
+    cudaFree(dot_prod_result);
+
+    delete[] host_add_result;
+    delete[] host_sub_result;
+    delete[] host_dot_prod_result;
 
     return 0;
 }

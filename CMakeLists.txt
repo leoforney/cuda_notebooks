@@ -28,9 +28,12 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_86,code=compute_
 
 add_executable(cuda_notebooks main.cu
         vector-operations/VectorOps.cu
-        vector-operations/VectorOps.cuh)
+        vector-operations/VectorOps.cuh
+        image-processing/ImageProcessing.cu
+        image-processing/ImageProcessing.cuh
+        CImg.h)
 
-target_link_libraries(cuda_notebooks PUBLIC Boost::program_options curand)
+target_link_libraries(cuda_notebooks PUBLIC Boost::program_options curand X11)
 
 set_target_properties(cuda_notebooks PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
