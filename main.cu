@@ -2,6 +2,7 @@
 #include <boost/program_options.hpp>
 #include "vector-operations/VectorOps.cuh"
 #include "image-processing/ImageProcessing.cuh"
+#include "list-sort/ListSort.cuh"
 
 namespace po = boost::program_options;
 
@@ -9,6 +10,7 @@ int main(int argc, const char* argv[]) {
 
     VectorOps vo = VectorOps();
     ImageProcessing ip = ImageProcessing();
+    ListSort ls = ListSort();
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -16,6 +18,7 @@ int main(int argc, const char* argv[]) {
 
     vo.addParams(&desc);
     ip.addParams(&desc);
+    ls.addParams(&desc);
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -32,6 +35,8 @@ int main(int argc, const char* argv[]) {
             return vo.main(vm);
         } else if (arg == "ip") {
             return ip.main(vm);
+        } else if (arg == "ls") {
+            return ls.main(vm);
         }
     }
 
