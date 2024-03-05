@@ -28,3 +28,9 @@ Image processing, currently converts image to grayscale
 Flags:
 - `--file` or `--f` specify a different input file other than image.jpg
 - `--output` or `--of` specify a different output file location other than image_grayscale.jpg
+
+## list-sort - `ls`
+Float list sorter. Generates random numbers and sorts them based on the bitonic sorting algorithm. This is not restricted to only 2^n elements. Any number of elements can be passed into it. Additionally, there exists a java class that binds to LibListSort.cu. Allowing floats to be sorted utilizing CUDA in Java.
+
+Flags:
+- `--numElements` or `--n` specify an amount of elements to generate

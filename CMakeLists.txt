@@ -36,7 +36,9 @@ add_executable(cuda_notebooks main.cu
         image-processing/ImageProcessing.cu
         image-processing/ImageProcessing.cuh
         list-sort/ListSort.cu
-        CImg.h)
+        CImg.h
+        matrix-operations/MatrixOps.cu
+        matrix-operations/MatrixOps.cuh)
 
 target_link_libraries(cuda_notebooks PUBLIC Boost::program_options curand X11)
 
