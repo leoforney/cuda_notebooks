@@ -34,3 +34,6 @@ Float list sorter. Generates random numbers and sorts them based on the bitonic 
 
 Flags:
 - `--numElements` or `--n` specify an amount of elements to generate
+
+## audio-visualizer - `av`
+Audio visualizer does a fourier transform using cuFFT and displays the selected track using `qt5`. Additionally, thrust was used to simplify data movement between GPU and host.

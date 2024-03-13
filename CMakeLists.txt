@@ -7,6 +7,10 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
+include(FetchContent)
+
+find_package(Thrust REQUIRED CONFIG)
+
 find_package(Boost 1.74.0 COMPONENTS program_options REQUIRED )
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options)
 set(BOOST_ENABLE_CMAKE ON)
@@ -30,6 +34,16 @@ else()
     message(STATUS "Java not found. Skipping JNI-related targets")
 endif()
 
+# Fetch libsndfile
+FetchContent_Declare(
+        libsndfile
+        GIT_REPOSITORY https://github.com/libsndfile/libsndfile.git
+        GIT_TAG        master # Optionally, specify a specific tag or commit
+)
+
+# Make libsndfile available for building
+FetchContent_MakeAvailable(libsndfile)
+
 add_executable(cuda_notebooks main.cu
         vector-operations/VectorOps.cu
         vector-operations/VectorOps.cuh
@@ -38,9 +52,11 @@ add_executable(cuda_notebooks main.cu
         list-sort/ListSort.cu
         CImg.h
         matrix-operations/MatrixOps.cu
-        matrix-operations/MatrixOps.cuh)
+        matrix-operations/MatrixOps.cuh
+        audio-visualizer/AudioVisualizer.cu
+        audio-visualizer/AudioVisualizer.cuh)
 
-target_link_libraries(cuda_notebooks PUBLIC Boost::program_options curand X11)
+target_link_libraries(cuda_notebooks PUBLIC sndfile Boost::program_options curand X11 cufft cudart)
 
 set_target_properties(cuda_notebooks PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
