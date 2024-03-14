@@ -8,6 +8,8 @@
 #include "sndfile.h"
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#include <QApplication>
+#include "VisualizerUI.cuh"
 
 AudioVisualizer::AudioVisualizer() {
 
@@ -23,6 +25,9 @@ int AudioVisualizer::main(const po::variables_map &vm) {
         return -1;
     }
 
+    const int chunkSize = 2048;
+    const int overlap = chunkSize / 2;
+    const int stepSize = chunkSize - overlap;
     size_t num_samples = sf_info.frames * sf_info.channels;
     thrust::host_vector<cufftReal> h_buffer(num_samples);
 
@@ -33,23 +38,35 @@ int AudioVisualizer::main(const po::variables_map &vm) {
         return -1;
     }
 
-    thrust::device_vector<cufftReal> d_buffer = h_buffer;
-    thrust::device_vector<cufftComplex> d_output(num_samples);
-
     cufftHandle plan;
-    cufftPlan1d(&plan, num_samples, CUFFT_R2C, 1);
+    cufftPlan1d(&plan, chunkSize, CUFFT_R2C, 1);
 
-    cufftExecR2C(plan, thrust::raw_pointer_cast(d_buffer.data()), thrust::raw_pointer_cast(d_output.data()));
-    cudaDeviceSynchronize();
+    ChunkVector cached_chunks;
+
+    for (int start = 0; start + chunkSize <= num_samples; start += stepSize) {
+        thrust::device_vector<cufftReal> d_buffer(h_buffer.begin() + start, h_buffer.begin() + start + chunkSize);
+        thrust::device_vector<cufftComplex> d_output(chunkSize);
+
+
+        cufftExecR2C(plan, thrust::raw_pointer_cast(d_buffer.data()), thrust::raw_pointer_cast(d_output.data()));
+        cudaDeviceSynchronize();
+
+        thrust::host_vector<cufftComplex> copied_buffer(chunkSize);
+        thrust::copy(d_output.begin(), d_output.end(), copied_buffer.begin());
+        cached_chunks.push_back(copied_buffer);
+    }
 
     cufftDestroy(plan);
-
-    thrust::host_vector<cufftComplex> copied_buffer = d_output;
-
-    cufftComplex fifteen = copied_buffer[15];
-
     sf_close(file);
-    return 0;
+
+    char* args[] = { (char*) "CUDAVisualizer"};
+    int argc = 1;
+    QApplication app(argc, args);
+
+    MainWindow mainWindow(cached_chunks);
+    mainWindow.show();
+
+    return app.exec();
 }
 
 void AudioVisualizer::addParams(po::options_description *desc) {
