@@ -12,13 +12,11 @@ find_package(Qt5 COMPONENTS Widgets Multimedia REQUIRED)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)]]
 
-if ( TARGET Qt5::Core )
-    get_property( core_options TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_OPTIONS )
-    string( REPLACE "-fPIC" "" new_core_options "${core_options}" )
-    set_property( TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_OPTIONS ${new_core_options} )
-    set_property( TARGET Qt5::Core PROPERTY INTERFACE_POSITION_INDEPENDENT_CODE "ON" )
-    set( CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC" )
-endif()
+get_property( core_options TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_OPTIONS )
+string( REPLACE "-fPIC" "" new_core_options "${core_options}" )
+set_property( TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_OPTIONS ${new_core_options} )
+set_property( TARGET Qt5::Core PROPERTY INTERFACE_POSITION_INDEPENDENT_CODE "ON" )
+set( CMAKE_CXX_COMPILE_OPTIONS_PIE "-fPIC" )
 
 include(FetchContent)
 
@@ -28,8 +26,10 @@ find_package(Boost 1.74.0 COMPONENTS program_options REQUIRED )
 set(BOOST_INCLUDE_LIBRARIES thread filesystem system program_options)
 set(BOOST_ENABLE_CMAKE ON)
 
+# Explicitly add -fPIC for CUDA compilation
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode arch=compute_86,code=compute_86")
 
+# Continue with the rest of your setup...
 find_package(Java COMPONENTS Development)
 if(Java_FOUND)
     find_package(JNI REQUIRED)
@@ -64,13 +64,14 @@ add_executable(cuda_notebooks main.cpp
         CImg.h
         matrix-operations/MatrixOps.cu
         matrix-operations/MatrixOps.cuh
-        audio-visualizer/AudioVisualizer.cu
-        audio-visualizer/AudioVisualizer.cuh
-        audio-visualizer/VisualizerUI.cuh)
+        audio-visualizer/AudioVisualizer.cpp
+        audio-visualizer/AudioVisualizer.h
+        audio-visualizer/VisualizerUI.h
+        audio-visualizer/VisualizerConstant.h
+        audio-visualizer/AudioProcessor.cuh)
 
 include_directories(${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
 
+target_link_libraries(cuda_notebooks PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} sndfile Boost::program_options curand X11 cufft cudart Qt5::Widgets Qt5::Multimedia)
 set_target_properties(cuda_notebooks PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
-
-target_link_libraries(cuda_notebooks PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} sndfile Boost::program_options curand X11 cufft cudart Qt5::Widgets Qt5::Multimedia)

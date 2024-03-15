@@ -3,7 +3,8 @@
 #include "vector-operations/VectorOps.cuh"
 #include "image-processing/ImageProcessing.cuh"
 #include "list-sort/ListSort.cuh"
-#include "audio-visualizer/AudioVisualizer.cuh"
+#include "audio-visualizer/AudioVisualizer.h"
+#include "matrix-operations/MatrixOps.cuh"
 
 namespace po = boost::program_options;
 
@@ -13,6 +14,7 @@ int main(int argc, const char* argv[]) {
     ImageProcessing ip = ImageProcessing();
     ListSort ls = ListSort();
     AudioVisualizer av = AudioVisualizer();
+    MatrixOps mo = MatrixOps();
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -42,6 +44,8 @@ int main(int argc, const char* argv[]) {
             return ls.main(vm);
         } else if (arg == "av") {
             return av.main(vm);
+        } else if (arg == "mo") {
+            return mo.main(vm);
         }
     }
 

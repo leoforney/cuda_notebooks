@@ -2,8 +2,8 @@
 // Created by leo on 3/12/24.
 //
 
-#ifndef CUDA_NOTEBOOKS_AUDIOVISUALIZER_CUH
-#define CUDA_NOTEBOOKS_AUDIOVISUALIZER_CUH
+#ifndef CUDA_NOTEBOOKS_AUDIOVISUALIZER_H
+#define CUDA_NOTEBOOKS_AUDIOVISUALIZER_H
 
 #include "boost/program_options/variables_map.hpp"
 #include "boost/program_options/options_description.hpp"
@@ -18,4 +18,4 @@ public:
 };
 
 
-#endif //CUDA_NOTEBOOKS_AUDIOVISUALIZER_CUH
+#endif //CUDA_NOTEBOOKS_AUDIOVISUALIZER_H

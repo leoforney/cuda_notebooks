@@ -2,8 +2,8 @@
 // Created by leo on 3/13/24.
 //
 
-#ifndef CUDA_NOTEBOOKS_VISUALIZERUI_CUH
-#define CUDA_NOTEBOOKS_VISUALIZERUI_CUH
+#ifndef CUDA_NOTEBOOKS_VISUALIZERUI_H
+#define CUDA_NOTEBOOKS_VISUALIZERUI_H
 
 #include <QMediaPlayer>
 #include <QTimer>
@@ -14,13 +14,10 @@
 #include <QLabel>
 #include <cmath>
 #include <vector>
-#include <thrust/host_vector.h>
 #include <complex>
 #include <QApplication>
 #include <cufft.h>
-
-typedef thrust::host_vector<cufftComplex> ComplexVector;
-typedef std::vector<ComplexVector> ChunkVector;
+#include "VisualizerConstant.h"
 
 class MainWindow : public QWidget {
 public:
@@ -87,4 +84,4 @@ private:
         }
     }
 };
-#endif //CUDA_NOTEBOOKS_VISUALIZERUI_CUH
+#endif //CUDA_NOTEBOOKS_VISUALIZERUI_H
